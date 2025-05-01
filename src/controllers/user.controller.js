@@ -53,8 +53,9 @@ exports.updateUserProfile = async (req, res, next) => {
       user.profile.city && 
       user.profile.state && 
       user.profile.pincode;
-    
-    user.profileCompleted = isProfileComplete;
+
+    // Force `profileCompleted` to be a boolean
+    user.profileCompleted = !!isProfileComplete;  // Convert to boolean (true/false)
 
     await user.save();
 
@@ -66,6 +67,7 @@ exports.updateUserProfile = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // Get user listings
 exports.getUserListings = async (req, res, next) => {
@@ -127,15 +129,20 @@ exports.uploadProfileImage = async (req, res, next) => {
       return res.status(400).json({ message: 'No image file provided' });
     }
     
-    // Here you would typically:
-    // 1. Upload the image to Cloudinary or similar service
-    // 2. Get the URL of the uploaded image
-    // 3. Update the user's profile with the new image URL
+    // Get file path
+    const filePath = req.file.path.replace('\\', '/'); // Handle Windows path separators
     
-    // For now, just return a placeholder response
+    // Generate URL to access the image
+    const baseUrl = `${req.protocol}://${req.get('host')}/`;
+    const imageUrl = baseUrl + filePath;
+    
+    // You could also update the user's profile here if needed
+    // await User.findByIdAndUpdate(req.user.id, { 'profile.profileImage': imageUrl });
+    
     res.status(200).json({
+      success: true,
       message: 'Image uploaded successfully',
-      imageUrl: 'https://via.placeholder.com/150',
+      imageUrl: imageUrl
     });
   } catch (error) {
     next(error);

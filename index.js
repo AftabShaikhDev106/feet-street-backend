@@ -19,6 +19,7 @@ const chatRoutes = require('./src/routes/chat.routes');
 // Import middlewares
 const { errorHandler,notFound } = require('./src/middlewares/error.middleware');
 const { socketAuthMiddleware } = require('./src/middlewares/auth.middleware');
+const path = require('path');
 
 // Load environment variables
 dotenv.config();
@@ -35,10 +36,7 @@ const io = socketIo(server, {
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB');
   })
@@ -62,7 +60,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use(notFound);
+
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Global error handler middleware (must be last!)
 app.use(errorHandler);
@@ -76,6 +75,7 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/chats', chatRoutes);
 
 // Error handler middleware
+app.use(notFound);
 app.use(errorHandler);
 
 // Socket.io setup
