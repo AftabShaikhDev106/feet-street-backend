@@ -8,17 +8,17 @@ const http = require('http');
 const socketIo = require('socket.io');
 
 // Import routes
-const authRoutes = require('./routes/auth.routes');
-const userRoutes = require('./routes/user.routes');
-const productRoutes = require('./routes/product.routes');
-const orderRoutes = require('./routes/order.routes');
-const walletRoutes = require('./routes/wallet.routes');
-const wishlistRoutes = require('./routes/wishlist.routes');
-const chatRoutes = require('./routes/chat.routes');
+const authRoutes = require('./src/routes/auth.routes');
+const userRoutes = require('./src/routes/user.routes');
+const productRoutes = require('./src/routes/product.routes');
+const orderRoutes = require('./src/routes/order.routes');
+const walletRoutes = require('./src/routes/wallet.routes');
+const wishlistRoutes = require('./src/routes/wishlist.routes');
+const chatRoutes = require('./src/routes/chat.routes');
 
 // Import middlewares
-const { errorHandler } = require('./middlewares/error.middleware');
-const { socketAuthMiddleware } = require('./middlewares/auth.middleware');
+const { errorHandler,notFound } = require('./src/middlewares/error.middleware');
+const { socketAuthMiddleware } = require('./src/middlewares/auth.middleware');
 
 // Load environment variables
 dotenv.config();
@@ -46,12 +46,26 @@ mongoose
     console.error('MongoDB connection error:', error);
   });
 
+// To this:
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('Connected to MongoDB');
+  })
+  .catch((error) => {
+    console.error('MongoDB connection error:', error);
+  });
+
 // Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+app.use(notFound);
+
+// Global error handler middleware (must be last!)
+app.use(errorHandler);
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
