@@ -37,10 +37,17 @@ app.set('io', io);
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('Connected to MongoDB');
   })
+  .catch((error) => {
+    console.error('MongoDB connection error:', error);
+  });
+
+// To this:
+mongoose
+  .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB');
   })
@@ -58,6 +65,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Global error handler middleware (must be last!)
+app.use(errorHandler);
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -69,6 +81,7 @@ app.use('/api/chats', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // Error handler middleware
+app.use(notFound);
 app.use(errorHandler);
 
 // Socket.io setup
