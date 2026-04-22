@@ -7,6 +7,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const http = require('http');
 const socketIo = require('socket.io');
+const path = require('path');
 
 // Import routes
 const authRoutes = require('./src/routes/auth.routes');
@@ -19,7 +20,7 @@ const chatRoutes = require('./src/routes/chat.routes');
 const notificationRoutes = require('./src/routes/notification.routes');
 
 // Import middlewares
-const { errorHandler } = require('./src/middlewares/error.middleware');
+const { errorHandler, notFound } = require('./src/middlewares/error.middleware');
 const { socketAuthMiddleware } = require('./src/middlewares/auth.middleware');
 
 // Create Express app
@@ -68,8 +69,6 @@ app.use(cookieParser());
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Global error handler middleware (must be last!)
-app.use(errorHandler);
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -80,7 +79,7 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// Error handler middleware
+// Error handler middleware (must be last!)
 app.use(notFound);
 app.use(errorHandler);
 
