@@ -208,25 +208,40 @@ exports.deleteProduct = async (req, res, next) => {
 };
 
 // Upload product image
+// src/controllers/product.controller.js
+
 exports.uploadImage = async (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No image file provided' });
+    console.log('Upload image request received');
+
+    console.log(req.files)
+    
+    if (!req.files || req.files.length === 0) {
+      console.log('No files in request');
+      return res.status(400).json({ message: 'No image files provided' });
     }
     
-    // Convert buffer to data URI
-    const fileBase64 = req.file.buffer.toString('base64');
-    const fileUri = `data:${req.file.mimetype};base64,${fileBase64}`;
+    console.log('Files received:', req.files.length);
     
-    // Upload image to Cloudinary
-    const result = await cloudinary.uploader.upload(fileUri, {
-      folder: 'feet_street/products',
-      resource_type: 'image',
+    // Process all uploaded files
+    const imageUrls = req.files.map(file => {
+      console.log('Processing file:', {
+        fieldname: file.fieldname,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        filename: file.filename,
+        path: file.path,
+        size: file.size,
+      });
+      
+      // Create URL for each file
+      return `${req.protocol}://${req.get('host')}/${file.path.replace(/\\/g, '/')}`;
     });
     
     res.status(200).json({
-      message: 'Image uploaded successfully',
-      imageUrl: result.secure_url,
+      message: 'Images uploaded successfully',
+      imageUrl: imageUrls[0], // For backward compatibility
+      imageUrls: imageUrls // For future use
     });
   } catch (error) {
     console.log('Image upload error:', error);
@@ -307,13 +322,25 @@ exports.addReview = async (req, res, next) => {
       });
     }
     
-    // Add new review (Allowing multiple reviews as requested)
-    product.reviews.push({
-      user: userId,
-      rating,
-      comment,
-      timestamp: Date.now(),
-    });
+    // Check if user has already reviewed this product
+    const existingReviewIndex = product.reviews.findIndex(
+      (review) => review.user.toString() === userId
+    );
+    
+    if (existingReviewIndex !== -1) {
+      // Update existing review
+      product.reviews[existingReviewIndex].rating = rating;
+      product.reviews[existingReviewIndex].comment = comment;
+      product.reviews[existingReviewIndex].timestamp = Date.now();
+    } else {
+      // Add new review
+      product.reviews.push({
+        user: userId,
+        rating,
+        comment,
+        timestamp: Date.now(),
+      });
+    }
     
     await product.save();
     
@@ -347,69 +374,6 @@ exports.getReviews = async (req, res, next) => {
       count: sortedReviews.length,
       reviews: sortedReviews,
     });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Update a review
-exports.updateReview = async (req, res, next) => {
-  try {
-    const { id, reviewId } = req.params;
-    const userId = req.user.id;
-    const { rating, comment } = req.body;
-
-    const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    const review = product.reviews.id(reviewId);
-    if (!review) {
-      return res.status(404).json({ message: 'Review not found' });
-    }
-
-    // Check if user is the author of the review
-    if (review.user.toString() !== userId) {
-      return res.status(403).json({ message: 'Not authorized to edit this review' });
-    }
-
-    if (rating) review.rating = rating;
-    if (comment) review.comment = comment;
-    review.timestamp = Date.now();
-
-    await product.save();
-    res.status(200).json({ message: 'Review updated successfully', product });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Delete a review
-exports.deleteReview = async (req, res, next) => {
-  try {
-    const { id, reviewId } = req.params;
-    const userId = req.user.id;
-
-    const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    const review = product.reviews.id(reviewId);
-    if (!review) {
-      return res.status(404).json({ message: 'Review not found' });
-    }
-
-    // Check if user is the author of the review
-    if (review.user.toString() !== userId) {
-      return res.status(403).json({ message: 'Not authorized to delete this review' });
-    }
-
-    product.reviews.pull(reviewId);
-    await product.save();
-
-    res.status(200).json({ message: 'Review deleted successfully' });
   } catch (error) {
     next(error);
   }

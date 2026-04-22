@@ -15,9 +15,8 @@ exports.authMiddleware = async (req, res, next) => {
     } else if (req.cookies && req.cookies.token) {
       token = req.cookies.token;
     }
-    
+
     if (!token) {
-      console.log('No token provided for request:', req.method, req.path);
       return res.status(401).json({ message: 'Not authorized, no token' });
     }
 
@@ -40,29 +39,34 @@ exports.authMiddleware = async (req, res, next) => {
 };
 
 // Authentication middleware for Socket.io
+// src/middlewares/auth.middleware.js
+
+// Socket middleware
 exports.socketAuthMiddleware = async (socket, next) => {
   try {
-    const token = socket.handshake.auth.token || 
-                  socket.handshake.headers.authorization?.split(' ')[1];
-
+    const token = socket.handshake.auth.token || socket.handshake.headers.authorization;
+    
     if (!token) {
-      return next(new Error('Not authorized, no token'));
+      return next(new Error('Authentication error: Token missing'));
     }
-
+    
+    // Remove 'Bearer ' if present
+    const tokenValue = token.startsWith('Bearer ') ? token.slice(7) : token;
+    
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Find user by id
-    const user = await User.findById(decoded.id);
+    const decoded = jwt.verify(tokenValue, process.env.JWT_SECRET);
+    
+    // Get user
+    const user = await User.findById(decoded.id).select('-password');
+    
     if (!user) {
-      return next(new Error('User not found'));
+      return next(new Error('Authentication error: User not found'));
     }
-
+    
     // Attach user to socket
     socket.user = user;
     next();
   } catch (error) {
-    console.error('Socket auth middleware error:', error);
-    return next(new Error('Not authorized, token failed'));
+    return next(new Error('Authentication error: ' + error.message));
   }
 };
