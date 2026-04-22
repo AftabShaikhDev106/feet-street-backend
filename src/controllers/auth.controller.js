@@ -55,6 +55,7 @@ exports.register = async (req, res, next) => {
 // Login user
 exports.login = async (req, res, next) => {
   try {
+    console.log("req.body",req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -158,13 +159,14 @@ exports.updateProfile = async (req, res, next) => {
     };
 
     // Check if profile is complete
-    const isProfileComplete = 
+    const isProfileComplete = !!(
       user.profile.fullName && 
       user.profile.phoneNumber && 
       user.profile.address && 
       user.profile.city && 
       user.profile.state && 
-      user.profile.pincode;
+      user.profile.pincode
+    );
     
     user.profileCompleted = isProfileComplete;
 
@@ -174,6 +176,35 @@ exports.updateProfile = async (req, res, next) => {
       message: 'Profile updated successfully',
       user
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Change password
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Find user and include password field
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Incorrect current password' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+
+    await user.save();
+
+    res.status(200).json({ message: 'Password changed successfully' });
   } catch (error) {
     next(error);
   }

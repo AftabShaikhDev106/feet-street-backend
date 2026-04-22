@@ -1,3 +1,4 @@
+// backend/src/routes/order.routes.js
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/order.controller');
@@ -6,7 +7,7 @@ const { authMiddleware } = require('../middlewares/auth.middleware');
 // All order routes require authentication
 router.use(authMiddleware);
 
-// Get all orders for user
+// Get all orders for the current user
 router.get('/', orderController.getUserOrders);
 
 // Get order by ID

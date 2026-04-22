@@ -48,23 +48,12 @@ exports.addToWishlist = async (req, res, next) => {
       return res.status(404).json({ message: 'Product not found' });
     }
     
-    // Find user's wishlist or create if not exists
-    let wishlist = await Wishlist.findOne({ user: userId });
-    if (!wishlist) {
-      wishlist = new Wishlist({
-        user: userId,
-        products: [],
-      });
-    }
-    
-    // Check if product is already in wishlist
-    if (wishlist.products.includes(productId)) {
-      return res.status(400).json({ message: 'Product already in wishlist' });
-    }
-    
-    // Add product to wishlist
-    wishlist.products.push(productId);
-    await wishlist.save();
+    // Add product to wishlist using $addToSet to prevent duplicates
+    let wishlist = await Wishlist.findOneAndUpdate(
+      { user: userId },
+      { $addToSet: { products: productId } },
+      { new: true, upsert: true }
+    );
     
     // Also update the user's wishlist array for convenience
     await User.findByIdAndUpdate(userId, { $addToSet: { wishlist: productId } });

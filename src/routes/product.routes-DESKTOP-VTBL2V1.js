@@ -16,12 +16,10 @@ router.use(authMiddleware);
 router.post('/', productController.createProduct);
 router.put('/:id', productController.updateProduct);
 router.delete('/:id', productController.deleteProduct);
-router.post('/upload-image', productUpload.array('images', 5), productController.uploadImage);
+router.post('/upload-image', productUpload.array('image', 5), productController.uploadImage);
 
 // Reviews
 router.post('/:id/reviews', productController.addReview);
 router.get('/:id/reviews', productController.getReviews);
-router.put('/:id/reviews/:reviewId', productController.updateReview);
-router.delete('/:id/reviews/:reviewId', productController.deleteReview);
 
 module.exports = router;

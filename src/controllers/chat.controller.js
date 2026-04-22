@@ -8,6 +8,9 @@ exports.getChats = async (req, res, next) => {
     const userId = req.user.id;
     
     // Find all chats where user is a participant
+
+    console.log("aya")
+
     const chats = await Chat.find({ participants: userId })
       .populate('participants', 'username profile')
       .populate('product', 'title images price status')
@@ -57,6 +60,8 @@ exports.createChat = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { participantId, productId } = req.body;
+
+
     
     // Check if participant exists
     const participant = await User.findById(participantId);

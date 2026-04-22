@@ -11,6 +11,7 @@ router.post('/logout', authController.logout);
 // Protected routes
 router.get('/profile', authMiddleware, authController.getProfile);
 router.put('/profile', authMiddleware, authController.updateProfile);
+router.put('/change-password', authMiddleware, authController.changePassword);
 
 module.exports = router;
 

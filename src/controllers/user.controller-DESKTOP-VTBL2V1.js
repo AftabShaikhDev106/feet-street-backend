@@ -46,16 +46,16 @@ exports.updateUserProfile = async (req, res, next) => {
     };
 
     // Check if profile is complete
-    const isProfileComplete = !!(
+    const isProfileComplete = 
       user.profile.fullName && 
       user.profile.phoneNumber && 
       user.profile.address && 
       user.profile.city && 
       user.profile.state && 
-      user.profile.pincode
-    );
-    
-    user.profileCompleted = isProfileComplete;
+      user.profile.pincode;
+
+    // Force `profileCompleted` to be a boolean
+    user.profileCompleted = !!isProfileComplete;  // Convert to boolean (true/false)
 
     await user.save();
 
@@ -67,6 +67,7 @@ exports.updateUserProfile = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // Get user listings
 exports.getUserListings = async (req, res, next) => {
@@ -121,8 +122,6 @@ exports.getUserReviews = async (req, res, next) => {
   }
 };
 
-const cloudinary = require('../config/cloudinary');
-
 // Upload profile image
 exports.uploadProfileImage = async (req, res, next) => {
   try {
@@ -130,22 +129,22 @@ exports.uploadProfileImage = async (req, res, next) => {
       return res.status(400).json({ message: 'No image file provided' });
     }
     
-    // Convert buffer to data URI
-    const fileBase64 = req.file.buffer.toString('base64');
-    const fileUri = `data:${req.file.mimetype};base64,${fileBase64}`;
+    // Get file path
+    const filePath = req.file.path.replace('\\', '/'); // Handle Windows path separators
     
-    // Upload image to Cloudinary
-    const result = await cloudinary.uploader.upload(fileUri, {
-      folder: 'feet_street/profiles',
-      resource_type: 'image',
-    });
+    // Generate URL to access the image
+    const baseUrl = `${req.protocol}://${req.get('host')}/`;
+    const imageUrl = baseUrl + filePath;
+    
+    // You could also update the user's profile here if needed
+    // await User.findByIdAndUpdate(req.user.id, { 'profile.profileImage': imageUrl });
     
     res.status(200).json({
+      success: true,
       message: 'Image uploaded successfully',
-      imageUrl: result.secure_url,
+      imageUrl: imageUrl
     });
   } catch (error) {
-    console.log('Profile image upload error:', error);
     next(error);
   }
 };

@@ -2,6 +2,7 @@ const Order = require('../models/order.model');
 const Product = require('../models/product.model');
 const User = require('../models/user.model');
 const walletController = require('../controllers/wallet.controller');
+const { sendNotification } = require('../utils/notification.utils');
 
 // Get all orders for user
 exports.getUserOrders = async (req, res, next) => {
@@ -115,6 +116,17 @@ exports.createOrder = async (req, res, next) => {
     // Update product status
     product.status = 'sold';
     await product.save();
+
+    // Send Notification to Seller
+    const io = req.app.get('io');
+    await sendNotification(io, {
+      recipient: product.seller,
+      sender: userId,
+      type: 'order_placed',
+      title: 'New Order Received',
+      message: `You have received a new order for "${product.title}"`,
+      data: { orderId: order._id, productId }
+    });
     
     // Populate order details for response
     const populatedOrder = await Order.findById(order._id)
@@ -144,7 +156,7 @@ exports.updateOrderStatus = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid status' });
     }
     
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate('product', 'title');
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
@@ -157,6 +169,17 @@ exports.updateOrderStatus = async (req, res, next) => {
     // Update order status
     order.status = status;
     await order.save();
+
+    // Send Notification to Buyer
+    const io = req.app.get('io');
+    await sendNotification(io, {
+      recipient: order.buyer,
+      sender: userId,
+      type: 'order_status',
+      title: 'Order Status Updated',
+      message: `Your order for "${order.product.title}" is now ${status}`,
+      data: { orderId: order._id, status }
+    });
     
     res.status(200).json({
       message: 'Order status updated successfully',
